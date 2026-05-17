@@ -5,6 +5,9 @@ on:
     types: [opened, reopened, synchronize]
     branches: [main]
 
+permissions:
+  contents: write
+
 jobs:
   package-and-release:
     name: Package skills and publish release assets
