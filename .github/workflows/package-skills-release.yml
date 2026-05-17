@@ -70,7 +70,7 @@ jobs:
           version=${latest_tag#v}
           echo "DEBUG: latest_tag=$latest_tag" >&2
           echo "DEBUG: base version=$version" >&2
-          next_version=$(npx semver "$version" "$release_type" 2>/dev/null || true)
+          next_version=$(node -e "try{const s=require('semver'); console.log(s.inc(process.argv[1], process.argv[2]));}catch(e){process.exit(0)}" "$version" "$release_type" 2>/dev/null || true)
           echo "DEBUG: next_version=$next_version" >&2
           if [ -z "$next_version" ]; then
             echo "version=v0.0.0" >> "$GITHUB_OUTPUT"
