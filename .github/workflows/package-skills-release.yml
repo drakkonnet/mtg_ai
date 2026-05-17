@@ -104,6 +104,5 @@ jobs:
           else
             gh release create "$release_tag" release-artifacts/*.zip \
               --title "$release_tag" \
-              --notes "$release_notes" \
-              --prerelease
+              --notes "$release_notes"
           fi
