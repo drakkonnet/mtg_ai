@@ -60,7 +60,11 @@ jobs:
           fi
           git fetch --tags --prune
           latest_tag=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1)
-          if [ -z "$latest_tag" ]; then
+          # If no git tags are present locally, fall back to the latest GitHub release tag
+          if [ -z "$latest_tag" ] || [ "$latest_tag" = "" ]; then
+            latest_tag=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || true)
+          fi
+          if [ -z "$latest_tag" ] || [ "$latest_tag" = "null" ]; then
             latest_tag="v0.0.0"
           fi
           version=${latest_tag#v}
