@@ -65,15 +65,10 @@ jobs:
           next_version=$(npx semver "$version" "$release_type")
           echo "version=v${next_version}" >> "$GITHUB_OUTPUT"
 
-      - name: Authenticate GitHub CLI
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "${GITHUB_TOKEN}" | gh auth login --with-token
-
       - name: Publish or update GitHub release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           release_tag="${{ steps.semver.outputs.version }}"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
