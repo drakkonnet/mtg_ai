@@ -13,8 +13,7 @@ on:
           - minor
           - major
 
-  pull_request:
-    types: [closed]
+  push:
     branches: [main]
 
 permissions:
@@ -22,7 +21,7 @@ permissions:
 
 jobs:
   package-and-release:
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
     name: Package skills and publish release assets
     runs-on: ubuntu-latest
 
@@ -75,7 +74,16 @@ jobs:
             release_type="${{ github.event.inputs.release_type }}"
             release_notes="Automated release dispatch (${release_type})"
           else
-            release_notes="Automated release for merged PR #${{ github.event.pull_request.number }}"
+            # running on push to main: attempt to find the merged PR for this commit
+            commit_sha=${GITHUB_SHA}
+            pr_number=$(gh api repos/${GITHUB_REPOSITORY}/commits/${commit_sha}/pulls -H "Accept: application/vnd.github.groot-preview+json" --jq '.[0].number' 2>/dev/null || true)
+            if [ -n "$pr_number" ] && [ "$pr_number" != "null" ]; then
+              pr_title=$(gh api repos/${GITHUB_REPOSITORY}/pulls/$pr_number --jq '.title' 2>/dev/null || true)
+              pr_body=$(gh api repos/${GITHUB_REPOSITORY}/pulls/$pr_number --jq '.body' 2>/dev/null || true)
+              release_notes=$(printf 'Merged PR #%s: %s\n\n%s' "$pr_number" "$pr_title" "$pr_body")
+            else
+              release_notes="Automated release for push to main (${commit_sha})"
+            fi
           fi
           if gh release view "$release_tag" >/dev/null 2>&1; then
             gh release upload "$release_tag" release-artifacts/*.zip --clobber
