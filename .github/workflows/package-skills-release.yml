@@ -1,0 +1,49 @@
+name: Package Skills Release
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches: [main]
+
+jobs:
+  package-and-release:
+    name: Package skills and publish release assets
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Create zip archives for each skill
+        run: |
+          mkdir -p release-artifacts
+          for folder in skills/*; do
+            if [ -d "$folder" ]; then
+              name=$(basename "$folder")
+              zip -r "release-artifacts/$name.zip" "$folder"
+            fi
+          done
+
+      - name: Set semver release tag
+        id: semver
+        run: |
+          pr_number=${{ github.event.pull_request.number }}
+          short_sha=${GITHUB_SHA:0:7}
+          version="v0.0.0-pr${pr_number}+${short_sha}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Publish or update GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          release_tag="${{ steps.semver.outputs.version }}"
+          release_notes="Automated skill release for PR #${{ github.event.pull_request.number }}"
+          if gh release view "$release_tag" >/dev/null 2>&1; then
+            gh release upload "$release_tag" release-artifacts/*.zip --clobber
+          else
+            gh release create "$release_tag" release-artifacts/*.zip \
+              --title "$release_tag" \
+              --notes "$release_notes" \
+              --draft \
+              --prerelease
+          fi
